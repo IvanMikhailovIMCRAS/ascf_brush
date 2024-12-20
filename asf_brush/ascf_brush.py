@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import integrate
 
 
 # Function for zeros finding
@@ -33,12 +34,23 @@ def sec(x):
     return 1 / np.cos(x)
 
 
+# Integral calculation
+def g_integral(x, z, K, H):
+    return (
+        K
+        * np.sin(K * x)
+        / np.cos(K * x) ** 2
+        / (np.cos(K * z) ** 2 - np.cos(K * x) ** 2) ** 0.5
+        * (1 - 4 * np.cos(K * H) ** 3 / np.cos(K * x) ** 3)
+    )
+
+
 class BCC_model:
     """
     Brush statistical properties under good solvent conditon on BCC lattice
     """
 
-    def __init__(self, N: int, sigma: float, eta: float, min_val:float=1e-7) -> None:
+    def __init__(self, N: int, sigma: float, eta: float, min_val: float = 1e-7) -> None:
         # Initial parameters
         self.N = N
         self.sigma = sigma
@@ -52,54 +64,62 @@ class BCC_model:
             raise ValueError("sigma < 0.0 or sigma > 1.0")
         if eta < 1.0:
             raise ValueError("eta < 1.0")
-        
+
         # Parameters for calculations
-        self.K = np.pi * eta / 2 / N
+        self.K = np.pi * eta / (2 * N)
         self.H = KH(np.pi * eta * sigma) / self.K
-        self.integral = (
-            lambda z: sec(self.K*self.H)
-            * sec(self.K*z)**6
-            * (-1 * (np.cos(self.K * z)**2 - np.cos(self.K * self.H)**2)**0.5)
-            * (
-                3
-                * np.cos(self.K * self.H)**4
-                * (
-                    1
-                    / 8
-                    * sec(self.K*self.H) ** 4
-                    * np.cos(self.K * z) ** 4
-                    * (5 - 3 * (1 - np.cos(self.K*self.H) ** 2 * sec(self.K*z) ** 2))
-                    + 3
-                    / np.tanh((1 - np.cos(self.K*self.H) ** 2 * sec(self.K*z) ** 2)
-                    ** 0.5)
-                    / 8
-                    / (1 - np.cos(self.K*self.H) ** 2 * sec(self.K*z) ** 2) ** 0.5
-                )
-                - np.cos(self.K * z) ** 4
-            )
-        )
+        # self.integral = (
+        # lambda z: sec(self.K*self.H)
+        # * sec(self.K*z)**6
+        # * (-1 * (np.cos(self.K * z)**2 - np.cos(self.K * self.H)**2)**0.5)
+        # * (
+        #     4
+        #     * np.cos(self.K * self.H)**4
+        #     * (
+        #         0.125
+        #         * sec(self.K*self.H) ** 4
+        #         * np.cos(self.K * z) ** 4
+        #         * (5 - 3 * (1 - np.cos(self.K*self.H) ** 2 * sec(self.K*z) ** 2))
+        #         + 3
+        #         / (np.tanh((1 - np.cos(self.K*self.H) ** 2 * sec(self.K*z) ** 2) ** 0.5) * 8 * (1 - np.cos(self.K*self.H) ** 2 * sec(self.K*z) ** 2) ** 0.5)
+        #     )
+        #     - np.cos(self.K * z) ** 4
+        # )
+        # )
+        self.integral = lambda z: integrate.quad(
+            lambda x: g_integral(x, z, self.K, self.H), z, self.H
+        )[0]
 
     # Theoretical volume fraction profile
     def phi(self, z):
         return 1 - (np.cos(self.K * self.H) / np.cos(self.K * z)) ** 3
-    
+
     def der_phi(self, z):
-        return -3*self.K*np.cos(self.K*self.H)**3 / np.cos(self.K*z)**3 * np.tan(self.K*z)
-    
+        return (
+            -3
+            * self.K
+            * np.cos(self.K * self.H) ** 3
+            / np.cos(self.K * z) ** 3
+            * np.tan(self.K * z)
+        )
+
     # Theoretical ends distribution
     def g(self, z):
         if z[-1] > self.H - self.min_val:
             raise ValueError("z can`t be equal to H")
-        return (
-            1
-            / self.sigma
-            / 2
-            / self.N
-            * np.sin(2*self.K*z)
-            * (
-                self.phi(z)
-                / np.cos(self.K * self.H)
-                / (np.cos(self.K * z)**2 - np.cos(self.K * self.H)**2)**0.5
-                - self.integral(z)
+
+        res = np.zeros(len(z))
+        for i in range(len(z)):
+            res[i] = (
+                1
+                / (self.sigma * 2 * self.N)
+                * np.sin(2 * self.K * z[i])
+                * (
+                    self.phi(z[i])
+                    / np.cos(self.K * self.H)
+                    / (np.cos(self.K * z[i]) ** 2 - np.cos(self.K * self.H) ** 2) ** 0.5
+                    - self.integral(z[i])
+                )
             )
-        )   
+
+        return res
