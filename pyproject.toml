@@ -4,17 +4,22 @@ version = "0.1.0"
 description = ""
 authors = ["Ivan Mikhailov <mikhailov.ivan@gmail.com>"]
 readme = "README.md"
-packages = [{include = "asf_brush"}]
+packages = [{include = "ascf_brush"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-numpy = "^2.2.0"
-scipy = "^1.14.1"
+numpy = "^1.26.4"
+scipy = "^1.15.0"
 
 
-[tool.poetry.group.def.dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "^24.10.0"
+isort = "^5.13.2"
+mypy = "^1.14.1"
+ruff = "^0.8.6"
+sfbox-api = {git = "https://github.com/IvanMikhailovIMCRAS/sfbox_api.git"}
 matplotlib = "^3.10.0"
+
 
 [build-system]
 requires = ["poetry-core"]
