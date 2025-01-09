@@ -129,7 +129,7 @@ class BrushModel:
         """
         if self.model == "gauss":
             return 1.5 * self.K**2 * (self.H**2 - z**2)
-        else:
+        if self.model == "bcc":
             return 3.0 * np.log(np.cos(self.K * z) / np.cos(self.K * self.H))
 
     def phi(self, z: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
@@ -143,7 +143,7 @@ class BrushModel:
         """
         if self.model == "gauss":
             return 1.5 * self.K**2 * (self.H**2 - z**2)
-        else:
+        if self.model == "bcc":
             return 1.0 - (np.cos(self.K * self.H) / np.cos(self.K * z)) ** 3
 
     def g(self, z: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
@@ -160,7 +160,7 @@ class BrushModel:
             return (
                 3.0 * self.K**2 * z / (self.N * self.sigma) * np.sqrt(self.H**2 - z**2)
             )
-        else:
+        if self.model == "bcc":
             return (
                 3.0
                 * np.tan(self.K * z)
